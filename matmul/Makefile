@@ -13,7 +13,7 @@ executables := \
 	target/matmul_nim_arraymancer_gcc \
 	target/matmul_nim_arraymancer_clang \
 	target/matmul_cr \
-	target/matmul_go \
+	matmul-go/stdlib/target/stdlib \
 	target/matmul_go_gccgo \
 	target/matmul_c_gcc \
 	target/matmul_c_clang \
@@ -68,10 +68,15 @@ build: $(artifacts)
 target/matmul_cr: matmul.cr | target
 	$(CRYSTAL_BUILD)
 
-target/matmul_go: matmul.go | $(gofmt)
+GO_SOURCE = $(wildcard matmul-go/* matmul-go/*/*.go ../common/go/*)
+
+matmul-go/go.sum: $(filter-out matmul-go/go.sum, $(GO_SOURCE))
+	$(GO_SUM)
+
+matmul-go/stdlib/target/stdlib: $(GO_SOURCE) | gofmt
 	$(GO_BUILD)
 
-target/matmul_go_gccgo: matmul.go | $(gofmt)
+target/matmul_go_gccgo: matmul-go/stdlib $(GO_SOURCE) | gofmt
 	$(GCC_GO_BUILD)
 
 matmul-rs-toml := matmul.rs/Cargo.toml
@@ -258,3 +263,4 @@ clean:
 	$(MAKE) -C java-nd4j clean
 	cargo clean --manifest-path $(rust-ndarray-toml)
 	-rm -rf zig-cache
+	-rm -rf matmul-go/*/target

@@ -3,14 +3,10 @@
 package main
 
 import (
-	"flag"
-	"fmt"
-	"log"
-	"math"
-	"net"
 	"os"
-	"runtime"
 	"strconv"
+
+	matmul_go "benchmarks/matmul/matmul-go"
 )
 
 func matgen(n int, seed float64) [][]float64 {
@@ -50,14 +46,6 @@ func matmul(a [][]float64, b [][]float64) [][]float64 {
 	return x
 }
 
-func notify(msg string) {
-	conn, err := net.Dial("tcp", "localhost:9001")
-	if err == nil {
-		fmt.Fprintf(conn, msg)
-		conn.Close()
-	}
-}
-
 func calc(n int) float64 {
 	n = n / 2 * 2
 	a := matgen(n, 1.0)
@@ -67,21 +55,17 @@ func calc(n int) float64 {
 }
 
 func main() {
-	n := int(100)
-	flag.Parse()
-	if flag.NArg() > 0 {
-		n, _ = strconv.Atoi(flag.Arg(0))
+	n := 100
+	var err error
+	if len(os.Args) > 1 {
+		n, err = strconv.Atoi(os.Args[1])
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	left := calc(101)
-	right := -18.67
-	if math.Abs(left-right) > 0.1 {
-		log.Fatalf("%f != %f\n", left, right)
+	err = matmul_go.Run("", n, calc)
+	if err != nil {
+		panic(err)
 	}
-
-	notify(fmt.Sprintf("%s\t%d", runtime.Compiler, os.Getpid()))
-	results := calc(n)
-	notify("stop")
-
-	fmt.Printf("%f\n", results)
 }

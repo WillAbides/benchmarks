@@ -1,11 +1,14 @@
 include ../common/commands.mk
 .DEFAULT_GOAL := build
 
+base64-go-targets := \
+	base64-go/stdlib/target/stdlib \
+	base64-go/base64x/target/base64x
+
 executables := \
+	$(base64-go-targets) \
 	target/base64_cr \
-	target/base64_go \
 	target/base64_go_base64x \
-	target/base64_go_gccgo \
 	target/base64_cpp_gcc_crypto \
 	target/base64_cpp_clang_crypto \
 	target/base64_c_ak_gcc \
@@ -56,14 +59,15 @@ build: $(artifacts)
 target/base64_cr: test.cr | target
 	$(CRYSTAL_BUILD)
 
-target/base64_go: test.go | $(gofmt)
+GO_SOURCE = $(wildcard base64-go/* base64-go/*/*.go ../common/go/*)
+
+base64-go/go.sum: $(filter-out base64-go/go.sum, $(GO_SOURCE))
+	$(GO_SUM)
+
+$(base64-go-targets): $(GO_SOURCE) | gofmt
 	$(GO_BUILD)
 
-target/base64_go_base64x: test-base64x.go | $(gofmt)
-	go mod tidy
-	$(GO_BUILD)
-
-target/base64_go_gccgo: test.go | $(gofmt)
+target/base64_go_gccgo: base64-go/stdlib $(GO_SOURCE) | gofmt
 	$(GCC_GO_BUILD)
 
 target/base64_cpp_gcc_crypto: test-crypto.cpp | target libnotify
@@ -75,7 +79,6 @@ target/base64_cpp_clang_crypto: test-crypto.cpp | target libnotify
 aklomp-base64-dir := target/aklomp-base64
 $(aklomp-base64-dir): | target
 	$(GIT_CLONE) "https://github.com/aklomp/base64.git" $@
-
 
 aklomp-base64-lib := lib/libbase64.o
 $(aklomp-base64-dir)/$(aklomp-base64-lib): $(aklomp-base64-dir)
@@ -232,3 +235,4 @@ clean:
 	cargo clean --manifest-path $(base64-rs-toml)
 	-rm -rf target
 	-rm -rf zig-cache
+	-rm -rf $(base64-go-targets)

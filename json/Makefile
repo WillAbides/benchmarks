@@ -9,11 +9,20 @@ json-rs-targets := \
 	json.rs/target/release/json-value-rs \
 	json.rs/target/release/json-jq-rs
 
+json-go-targets := \
+	json-go/stdlib/target/stdlib \
+	json-go/goccy/target/goccy \
+	json-go/jsoniter/target/jsoniter \
+	json-go/sonic/target/sonic \
+	json-go/rjson/target/rjson \
+	json-go/rjson-custom/target/rjson-custom
+
 executables := \
 	target/json_cr \
 	target/json_pull_cr \
 	target/json_schema_cr \
 	$(json-rs-targets) \
+	$(json-go-targets) \
 	target/json_d \
 	target/json_d_gdc \
 	target/json_d_ldc \
@@ -153,10 +162,15 @@ target/jsony_nim_gcc: test_jsony.nim | target jsony
 target/jsony_nim_clang: test_jsony.nim | target jsony
 	$(NIM_CLANG_BUILD)
 
-target/json_go: test.go | $(gofmt)
+GO_SOURCE = $(wildcard json-go/* json-go/*/*.go ../common/go/*)
+
+json-go/go.sum: $(filter-out json-go/go.sum, $(GO_SOURCE))
+	$(GO_SUM)
+
+$(json-go-targets): $(GO_SOURCE) | gofmt
 	$(GO_BUILD)
 
-target/json_go_gccgo: test.go | $(gofmt)
+target/json_go_gccgo: json-go/stdlib $(GO_SOURCE) | gofmt
 	$(GCC_GO_BUILD)
 
 # NOTE: quite time consuming
@@ -326,30 +340,6 @@ target/json_vala_gcc: test.vala | target
 target/json_vala_clang: test.vala | target
 	$(VALAC_CLANG_BUILD) --pkg json-glib-1.0
 
-.PHONY: json-iterator
-json-iterator:
-	GO111MODULE=auto go get github.com/json-iterator/go
-
-target/json_iter_go: test_jsoniter.go | json-iterator
-	$(GO_BUILD)
-
-.PHONY: goccy
-goccy:
-	GO111MODULE=auto go get github.com/goccy/go-json
-
-target/json_goccy: test_goccy.go | goccy
-	$(GO_BUILD)
-
-target/json_sonic: test_sonic.go | $(gofmt)
-	go mod tidy
-	$(GO_BUILD)
-
-target/json_rjson: test_rjson.go
-	$(GO_BUILD)
-
-target/json_rjson_custom: test_rjson_custom.go
-	$(GO_BUILD)
-
 json-fsharp/target/Release/net7.0/json-fsharp: json-fsharp/json-fsharp.fsproj json-fsharp/Program.fs
 	$(DOTNET_BUILD)
 
@@ -461,6 +451,7 @@ clean:
 	-rm -rf target
 	-rm -rf mir-common-json/target
 	-rm -rf zig-cache
+	-rm -f $(json-go-targets)
 
 $(json_file):
 	ruby generate_json.rb

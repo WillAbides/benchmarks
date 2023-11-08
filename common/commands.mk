@@ -17,10 +17,11 @@ DOTNET_BUILD =		dotnet build --nologo -v q $< -c Release
 DUB_BUILD =		dub -q build --build=release-nobounds --compiler=ldc2 --single $^
 GCC_BUILD =		gcc $(GCC_FLAGS) -std=c2x -o $@ $^ $(LIBNOTIFY_FLAGS)
 GCC_CPP_BUILD =	g++ $(GCC_FLAGS) -std=c++23 -o $@ $^ $(LIBNOTIFY_FLAGS)
-GCC_GO_BUILD =		gccgo $(GCC_FLAGS) -o $@ $^
+GCC_GO_BUILD =	go build -C $< -compiler gccgo -gccgoflags="$(GCC_FLAGS)" -o $(abspath $@) .
 GDC_BUILD =		gdc -o $@ -O3 -frelease -finline -fbounds-check=off $^
 GHC_BUILD =		ghc -v0 -O2 -fforce-recomp -Wall $^ -o $@ -outputdir $(@D)
-GO_BUILD =		GO111MODULE=auto go build -o $@ $^
+GO_BUILD =		go build -C $(dir $(@D)) -ldflags="-s -w" -o $(abspath $@) .
+GO_SUM =		go -C $(@D) mod tidy && go -C $(@D) get -u ./... && touch $@
 JAVAC_BUILD =		javac --release 21 -Xlint:unchecked -d $(@D) $^
 KOTLINC_BUILD =	kotlinc -include-runtime -jvm-target 20 -d $@ $^
 LDC2_BUILD =		ldc2 -of$@ -O5 -release -boundscheck=off $^
@@ -95,10 +96,9 @@ $(julia_fmt): *.jl | target
 	../common/julia/julia_fmt.jl $^
 	@touch $@
 
-gofmt := target/.gofmt
-$(gofmt): *.go | target
-	gofmt -s -w $^
-	@touch $@
+.PHONY: gofmt
+gofmt:
+	gofmt -s -w .
 
 rubocop := target/.rubocop
 $(rubocop): *.rb | target

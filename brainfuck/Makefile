@@ -18,6 +18,7 @@ executables := \
 	target/bin_hs_marray \
 	target/bin_ocaml \
 	target/bin_go \
+	bf-go/stdlib/target/stdlib \
 	target/bin_go_gccgo \
 	target/bin_vala_gcc \
 	target/bin_vala_clang \
@@ -103,10 +104,15 @@ fsharp/target/Release/net7.0/brainfuck: fsharp/brainfuck.fsproj | target
 target/bf2-kt.jar: bf2.kt | target
 	$(KOTLINC_BUILD)
 
-target/bin_go: bf.go | target
+GO_SOURCE = $(wildcard bf-go/* bf-go/*/*.go ../common/go/*)
+
+bf-go/go.sum: $(filter-out bf-go/go.sum, $(GO_SOURCE))
+	$(GO_SUM)
+
+bf-go/stdlib/target/stdlib: $(GO_SOURCE) | gofmt
 	$(GO_BUILD)
 
-target/bin_go_gccgo: bf.go | target
+target/bin_go_gccgo: bf-go/stdlib $(GO_SOURCE) | gofmt
 	$(GCC_GO_BUILD)
 
 target/bin_d: bf.d | $(dfmt)
@@ -261,3 +267,4 @@ clean:
 	$(DOTNET_CLEAN) fsharp/brainfuck.fsproj
 	-rm -rf target
 	-rm -rf zig-cache
+	-rm -rf bf-go/*/target

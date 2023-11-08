@@ -1,30 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"log"
-	"net"
-	"os"
+	"benchmarks/common/json/json-go"
 
 	"github.com/willabides/rjson"
 )
 
-type Coordinate struct {
-	X, Y, Z float64
-}
-
-func notify(msg string) {
-	conn, err := net.Dial("tcp", "localhost:9001")
-	if err == nil {
-		fmt.Fprintf(conn, msg)
-		conn.Close()
-	}
-}
-
 type handler struct {
 	buffer rjson.Buffer
-	coord  Coordinate
+	coord  json_go.Coordinate
 	count  float64 // used to calculate the running average
 }
 
@@ -57,35 +41,22 @@ func (h *handler) HandleObjectValue(fieldname, data []byte) (int, error) {
 	return p, nil
 }
 
-func calc(bytes []byte) Coordinate {
+func calc(bytes []byte) (json_go.Coordinate, error) {
 	h := &handler{}
-	rjson.HandleObjectValues(bytes, h, &h.buffer)
-	return Coordinate{
+	_, err := rjson.HandleObjectValues(bytes, h, &h.buffer)
+	if err != nil {
+		return json_go.Coordinate{}, err
+	}
+	return json_go.Coordinate{
 		X: h.coord.X / h.count,
 		Y: h.coord.Y / h.count,
 		Z: h.coord.Z / h.count,
-	}
+	}, nil
 }
 
 func main() {
-	right := Coordinate{2.0, 0.5, 0.25}
-	for _, v := range []string{
-		`{"coordinates":[{"x":2.0,"y":0.5,"z":0.25}]}`,
-		`{"coordinates":[{"y":0.5,"x":2.0,"z":0.25}]}`} {
-		left := calc([]byte(v))
-		if left != right {
-			log.Fatalf("%+v != %+v\n", left, right)
-		}
-	}
-
-	bytes, err := ioutil.ReadFile("/tmp/1.json")
+	err := json_go.Run("rjson custom", calc)
 	if err != nil {
-		panic(fmt.Sprintf("%v", err))
+		panic(err)
 	}
-
-	notify(fmt.Sprintf("Go (rjson custom)\t%d", os.Getpid()))
-	results := calc(bytes)
-	notify("stop")
-
-	fmt.Printf("%+v\n", results)
 }
